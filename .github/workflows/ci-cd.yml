@@ -76,5 +76,50 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/evaluacion-devops:latest
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/evaluacion-devops:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/evaluacion-devops:${{ github.sha }}
+
+  deploy:
+    name: Kubernetes Deploy
+    runs-on: [self-hosted, linux, x64, minikube]
+    needs: docker
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Verify Kubernetes connection
+        run: |
+          kubectl config current-context
+          kubectl get deployments
+
+      - name: Deploy ConfigMap
+        run: |
+          kubectl apply -f kubernetes/configmap.yaml
+
+      - name: Deploy Django application
+        run: |
+          sed "s|image: gergarciasanchez/evaluacion-devops:latest|image: gergarciasanchez/evaluacion-devops:${GITHUB_SHA}|" \
+            kubernetes/deployment.yaml | kubectl apply -f -
+
+      - name: Deploy Kubernetes Service
+        run: |
+          kubectl apply -f kubernetes/service.yaml
+
+      - name: Deploy Ingress
+        run: |
+          kubectl apply -f kubernetes/ingress.yaml
+
+      - name: Deploy Horizontal Pod Autoscaler
+        run: |
+          kubectl apply -f kubernetes/hpa.yaml
+
+      - name: Validate deployment
+        run: |
+          kubectl rollout status deployment/django-app --timeout=180s
+          kubectl get deployments
+          kubectl get pods
+          kubectl get hpa
 

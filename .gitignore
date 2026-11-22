@@ -26,3 +26,6 @@ htmlcov/
 # IDE
 .vscode/
 .idea/
+
+# Kubernetes secrets
+kubernetes/secret.yaml
