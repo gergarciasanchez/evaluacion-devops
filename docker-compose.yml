@@ -1,0 +1,26 @@
+
+services:
+  django-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: devops-django-app
+
+    ports:
+      - "8001:8000"
+
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Debes configurar DJANGO_SECRET_KEY}
+      DATABASE_NAME: /data/db.sqlite3
+      DJANGO_DEBUG: "False"
+      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1"
+
+    volumes:
+      - django_data:/data
+
+    restart: unless-stopped
+
+volumes:
+  django_data:
+
